@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Partnerships Pipeline</title>
+<style>
+/* ============================================================
+   TOKENS — light is the default; dark is a selected set,
+   declared under both the OS media query and the theme toggle.
+   ============================================================ */
+.viz-root{
+  color-scheme: light;
+  --surface-1:#fcfcfb; --page:#f9f9f7;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,0.10);
+  /* ordinal funnel ramp — validated light→dark, 5 stages */
+  --stage-1:#86b6ef; --stage-2:#5598e7; --stage-3:#2a78d6;
+  --stage-4:#1c5cab; --stage-5:#0d366b;
+  --pre-funnel:#c3c2b7;
+  /* status — fixed, never themed */
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --good-text:#006300;
+  --track:rgba(11,11,11,0.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])) .viz-root{
+    color-scheme: dark;
+    --surface-1:#1a1a19; --page:#0d0d0d;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+    --stage-1:#184f95; --stage-2:#256abf; --stage-3:#3987e5;
+    --stage-4:#86b6ef; --stage-5:#cde2fb;
+    --pre-funnel:#383835;
+    --good-text:#0ca30c;
+    --track:rgba(255,255,255,0.06);
+  }
+}
+:root[data-theme="dark"] .viz-root{
+  color-scheme: dark;
+  --surface-1:#1a1a19; --page:#0d0d0d;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,0.10);
+  --stage-1:#184f95; --stage-2:#256abf; --stage-3:#3987e5;
+  --stage-4:#86b6ef; --stage-5:#cde2fb;
+  --pre-funnel:#383835;
+  --good-text:#0ca30c;
+  --track:rgba(255,255,255,0.06);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--page,#f9f9f7)}
+.viz-root{
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:var(--page); color:var(--text-primary);
+  min-height:100vh; padding:28px 20px 64px;
+}
+.wrap{max-width:1120px;margin:0 auto}
+
+/* ---------- header ---------- */
+header.hd{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;margin-bottom:22px}
+.hd h1{font-size:24px;font-weight:640;letter-spacing:-0.02em;margin:0}
+.hd .sub{color:var(--text-secondary);font-size:13px;margin-top:4px}
+.hd .spacer{flex:1}
+.tbtn{
+  border:1px solid var(--border);background:var(--surface-1);color:var(--text-secondary);
+  border-radius:8px;padding:7px 12px;font-size:12.5px;font-family:inherit;cursor:pointer;
+}
+.tbtn:hover{color:var(--text-primary)}
+
+/* ---------- stat tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:12px;margin-bottom:22px}
+.tile{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.tile .lbl{font-size:11.5px;font-weight:560;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted)}
+.tile .val{font-size:30px;font-weight:600;letter-spacing:-0.03em;margin-top:7px;line-height:1.05}
+.tile .note{font-size:12px;color:var(--text-secondary);margin-top:6px}
+.tile .note.up{color:var(--good-text)}
+.tile .note.warn{color:var(--text-secondary)}
+
+/* ---------- card ---------- */
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:20px 20px 22px;margin-bottom:18px}
+.card h2{font-size:15px;font-weight:620;margin:0 0 3px;letter-spacing:-0.01em}
+.card .cap{font-size:12.5px;color:var(--text-secondary);margin:0 0 18px}
+
+/* ---------- funnel ---------- */
+.funnel{display:flex;flex-direction:column;gap:11px}
+.frow{display:grid;grid-template-columns:104px 1fr 128px;align-items:center;gap:14px}
+.frow .nm{font-size:13px;color:var(--text-secondary);text-align:right;white-space:nowrap}
+.ftrack{position:relative;height:26px;background:var(--track);border-radius:4px;overflow:visible}
+.fbar{
+  height:26px;border-radius:0 4px 4px 0;position:relative;
+  box-shadow:0 0 0 2px var(--surface-1);
+  transition:filter .12s;
+}
+.fbar:hover{filter:brightness(1.06)}
+.frow .amt{font-size:13px;color:var(--text-primary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.frow .amt .ct{color:var(--text-muted);font-size:12px;margin-left:7px}
+.flegend{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--grid);font-size:12px;color:var(--text-secondary)}
+.flegend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:11px;height:11px;border-radius:3px;display:inline-block;flex:none}
+
+/* ---------- attention list ---------- */
+.att{display:flex;flex-direction:column;gap:2px}
+.arow{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start;padding:12px 0;border-bottom:1px solid var(--grid)}
+.arow:last-child{border-bottom:0}
+.arow .brand{font-size:14px;font-weight:580}
+.arow .brand a{color:inherit;text-decoration:none;border-bottom:1px solid var(--border)}
+.arow .brand a:hover{border-bottom-color:var(--text-secondary)}
+.arow .why{font-size:12.5px;color:var(--text-secondary);margin-top:3px;line-height:1.45}
+.arow .right{text-align:right;white-space:nowrap}
+.arow .money{font-size:13.5px;font-variant-numeric:tabular-nums}
+.chip{
+  display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:560;
+  padding:3px 8px;border-radius:999px;margin-top:5px;
+  border:1px solid var(--border);color:var(--text-primary);background:var(--track);
+}
+.chip .ic{font-size:10px;line-height:1}
+
+/* ---------- table ---------- */
+.tblwrap{overflow-x:auto;margin:0 -4px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{
+  text-align:left;font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;
+  color:var(--text-muted);padding:0 12px 9px;border-bottom:1px solid var(--axis);white-space:nowrap;
+}
+th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+td{padding:11px 12px;border-bottom:1px solid var(--grid);color:var(--text-primary);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td a{color:inherit;text-decoration:none;border-bottom:1px solid var(--border)}
+td a:hover{border-bottom-color:var(--text-secondary)}
+td .meta{display:block;color:var(--text-muted);font-size:11.5px;margin-top:2px}
+.stagepill{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+
+.foot{font-size:12px;color:var(--text-muted);text-align:center;margin-top:26px;line-height:1.6}
+
+@media (max-width:640px){
+  .frow{grid-template-columns:82px 1fr;row-gap:5px}
+  .frow .amt{grid-column:2;text-align:left}
+  .tile .val{font-size:26px}
+}
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div class="wrap">
+
+  <header class="hd">
+    <div>
+      <h1 id="hdTitle">Partnerships Pipeline</h1>
+      <div class="sub" id="hdSub"></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="tbtn" id="themeBtn" type="button">Dark mode</button>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section class="card">
+    <h2>Pipeline by stage</h2>
+    <p class="cap">Open value in each stage. Bar length is total value; the count is beside it.</p>
+    <div class="funnel" id="funnel"></div>
+    <div class="flegend" id="funnelLegend"></div>
+  </section>
+
+  <section class="card">
+    <h2>Needs attention</h2>
+    <p class="cap">Ranked by value &times; stage probability &times; how overdue the follow-up is.</p>
+    <div class="att" id="attention"></div>
+  </section>
+
+  <section class="card">
+    <h2>All open deals</h2>
+    <p class="cap">Click a column heading to sort. Brand names link to the email thread.</p>
+    <div class="tblwrap">
+      <table id="dealTable">
+        <thead><tr>
+          <th data-k="brand">Brand</th>
+          <th data-k="stageOrder">Stage</th>
+          <th data-k="value" class="num">Value</th>
+          <th data-k="weighted" class="num">Weighted</th>
+          <th data-k="daysSilent" class="num">Silent</th>
+          <th data-k="healthOrder">Health</th>
+          <th data-k="nextActionDate">Next action</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</div>
+</div>
+
+<!-- ============================================================
+     THE STORE — this is the CRM's persistent data. Read it back
+     with device_stage_files before every update_artifact call,
+     merge, and write the whole document again. Shape is defined
+     in shared/data-model.md. Do not rename this element's id.
+     ============================================================ -->
+<script id="crm-store" type="application/json">
+{"version":1,"updated":null,"config":{},"deals":{},"closedThisPeriod":{"won":[],"lost":[]},"templateOverrides":{}}
+</script>
+
+<script>
+/* ============================================================
+   DATA — replaced wholesale by the crm-dashboard skill.
+   Shape is documented in skills/crm-dashboard/SKILL.md.
+   ============================================================ */
+const DATA = /*__CRM_DATA__*/ {
+  generated: "2026-08-17T08:00:00-05:00",
+  owner: "",
+  currency: "USD",
+  quota: null,
+  quotaPeriod: "Quarter",
+  stages: [
+    {name:"Contacted",   count:0, value:0},
+    {name:"Engaged",     count:0, value:0},
+    {name:"Pitched",     count:0, value:0},
+    {name:"Negotiating", count:0, value:0},
+    {name:"Verbal",      count:0, value:0}
+  ],
+  prospects: {count:0, value:0},
+  closedWon: {count:0, value:0},
+  closedLost: {count:0, value:0},
+  nurture: {count:0, value:0},
+  deals: []
+};
+
+/* ---------- helpers ---------- */
+const STAGE_ORDER = ["Prospect","Contacted","Engaged","Pitched","Negotiating","Verbal","Closed Won","Closed Lost","Nurture"];
+const STAGE_VAR = {Contacted:"--stage-1",Engaged:"--stage-2",Pitched:"--stage-3",Negotiating:"--stage-4",Verbal:"--stage-5",Prospect:"--pre-funnel"};
+const HEALTH = {
+  "Needs Reply":{rank:0, v:"--critical", ic:"◆", lbl:"Needs reply"},
+  "Cold":       {rank:1, v:"--critical", ic:"▼", lbl:"Cold"},
+  "Cooling":    {rank:2, v:"--serious",  ic:"▽", lbl:"Cooling"},
+  "Due":        {rank:3, v:"--warning",  ic:"●", lbl:"Due"},
+  "Healthy":    {rank:4, v:"--good",     ic:"○", lbl:"Healthy"},
+  "Scheduled":  {rank:5, v:"--text-muted", ic:"◌", lbl:"Scheduled"}
+};
+const cur = n => new Intl.NumberFormat(undefined,{style:"currency",currency:DATA.currency||"USD",maximumFractionDigits:0}).format(n||0);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cssv = v => getComputedStyle(document.querySelector(".viz-root")).getPropertyValue(v).trim();
+
+/* ---------- header ---------- */
+const d = new Date(DATA.generated);
+document.getElementById("hdSub").textContent =
+  (DATA.owner ? DATA.owner + " · " : "") +
+  d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}) +
+  " · " + d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+
+/* ---------- tiles ---------- */
+const openDeals = DATA.deals.filter(x => !/^Closed/.test(x.stage) && x.stage !== "Nurture");
+const openValue = DATA.stages.reduce((a,s)=>a+s.value,0);
+const weighted  = openDeals.reduce((a,x)=>a+(x.weighted||0),0);
+const needReply = openDeals.filter(x=>x.health==="Needs Reply").length;
+const atRisk    = openDeals.filter(x=>x.health==="Cooling"||x.health==="Cold");
+const atRiskVal = atRisk.reduce((a,x)=>a+(x.value||0),0);
+
+const tiles = [
+  {lbl:"Open pipeline", val:cur(openValue), note:openDeals.length+" active deal"+(openDeals.length===1?"":"s")},
+  {lbl:"Weighted forecast", val:cur(weighted), note:"stage-adjusted"},
+  {lbl:"Needs reply", val:String(needReply), note:needReply?"waiting on you today":"inbox is clear", cls:needReply?"":"up"},
+  DATA.quota
+    ? {lbl:"Coverage", val:(openValue/DATA.quota).toFixed(1)+"×", note:cur(DATA.quota)+" "+DATA.quotaPeriod.toLowerCase()+" target"+(openValue/DATA.quota<2.5?" · below 3×":"")}
+    : {lbl:"At risk", val:cur(atRiskVal), note:atRisk.length+" cooling or cold"}
+];
+document.getElementById("tiles").innerHTML = tiles.map(t =>
+  `<div class="tile"><div class="lbl">${esc(t.lbl)}</div><div class="val">${esc(t.val)}</div><div class="note ${t.cls||""}">${esc(t.note)}</div></div>`
+).join("");
+
+/* ---------- funnel ---------- */
+const maxV = Math.max(1, ...DATA.stages.map(s=>s.value));
+document.getElementById("funnel").innerHTML = DATA.stages.map(s => {
+  const pct = Math.max(s.value>0 ? 2.5 : 0, (s.value/maxV)*100);
+  return `<div class="frow">
+    <div class="nm">${esc(s.name)}</div>
+    <div class="ftrack"><div class="fbar" style="width:${pct}%;background:var(${STAGE_VAR[s.name]})"
+      title="${esc(s.name)}: ${esc(cur(s.value))} across ${s.count} deal${s.count===1?"":"s"}"></div></div>
+    <div class="amt">${esc(cur(s.value))}<span class="ct">${s.count} deal${s.count===1?"":"s"}</span></div>
+  </div>`;
+}).join("");
+document.getElementById("funnelLegend").innerHTML =
+  DATA.stages.map(s=>`<span><i class="sw" style="background:var(${STAGE_VAR[s.name]})"></i>${esc(s.name)}</span>`).join("") +
+  `<span style="color:var(--text-muted)">Not shown: ${DATA.prospects.count} prospect${DATA.prospects.count===1?"":"s"}, ${DATA.nurture.count} in nurture</span>`;
+
+/* ---------- attention ---------- */
+const scored = openDeals
+  .filter(x => x.health && x.health!=="Healthy" && x.health!=="Scheduled")
+  .sort((a,b)=> (HEALTH[a.health]?.rank ?? 9) - (HEALTH[b.health]?.rank ?? 9) || (b.priority||0)-(a.priority||0))
+  .slice(0,10);
+
+document.getElementById("attention").innerHTML = scored.length ? scored.map(x => {
+  const h = HEALTH[x.health] || HEALTH.Due;
+  const nm = x.threadLink ? `<a href="${esc(x.threadLink)}" target="_blank" rel="noopener">${esc(x.brand)}</a>` : esc(x.brand);
+  return `<div class="arow">
+    <div>
+      <div class="brand">${nm}</div>
+      <div class="why">${esc(x.why || (x.daysSilent+" days silent at "+x.stage))}</div>
+    </div>
+    <div class="right">
+      <div class="money">${esc(cur(x.value))}</div>
+      <span class="chip"><i class="ic" style="color:var(${h.v})">${h.ic}</i>${esc(h.lbl)}</span>
+    </div>
+  </div>`;
+}).join("") : `<div class="why" style="color:var(--good-text)">Nothing overdue. Every open deal is inside its follow-up window.</div>`;
+
+/* ---------- table ---------- */
+const tbody = document.querySelector("#dealTable tbody");
+let sortKey = "priority", sortDir = -1;
+function rowsFor(){
+  return openDeals.map(x => ({...x,
+    stageOrder: STAGE_ORDER.indexOf(x.stage),
+    healthOrder: HEALTH[x.health]?.rank ?? 9
+  })).sort((a,b)=>{
+    const A=a[sortKey], B=b[sortKey];
+    if (A==null) return 1; if (B==null) return -1;
+    return (typeof A==="string" ? A.localeCompare(B) : A-B) * sortDir;
+  });
+}
+function render(){
+  tbody.innerHTML = rowsFor().map(x => {
+    const h = HEALTH[x.health] || HEALTH.Due;
+    const nm = x.threadLink ? `<a href="${esc(x.threadLink)}" target="_blank" rel="noopener">${esc(x.brand)}</a>` : esc(x.brand);
+    return `<tr>
+      <td>${nm}${x.contact?`<span class="meta">${esc(x.contact)}</span>`:""}</td>
+      <td><span class="stagepill"><i class="sw" style="background:var(${STAGE_VAR[x.stage]||"--pre-funnel"})"></i>${esc(x.stage)}</span></td>
+      <td class="num">${esc(cur(x.value))}</td>
+      <td class="num">${esc(cur(x.weighted))}</td>
+      <td class="num">${x.daysSilent==null?"—":x.daysSilent+"d"}</td>
+      <td><span class="chip"><i class="ic" style="color:var(${h.v})">${h.ic}</i>${esc(h.lbl)}</span></td>
+      <td>${esc(x.nextAction||"—")}${x.nextActionDate?`<span class="meta">${esc(x.nextActionDate)}</span>`:""}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="7" style="color:var(--text-muted);padding:20px 12px">No open deals yet.</td></tr>`;
+}
+document.querySelectorAll("#dealTable th").forEach(th => {
+  th.style.cursor = "pointer";
+  th.addEventListener("click", () => {
+    const k = th.dataset.k;
+    if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = 1; }
+    render();
+  });
+});
+render();
+
+/* ---------- theme ---------- */
+const btn = document.getElementById("themeBtn");
+function syncBtn(){ btn.textContent = document.documentElement.dataset.theme === "dark" ? "Light mode" : "Dark mode"; }
+if (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
+syncBtn();
+btn.addEventListener("click", () => {
+  document.documentElement.dataset.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  syncBtn();
+});
+
+/* ---------- footer ---------- */
+const est = openDeals.filter(x => x.estimated).length;
+document.getElementById("foot").innerHTML =
+  `Closed this period: ${DATA.closedWon.count} won · ${esc(cur(DATA.closedWon.value))} &nbsp;—&nbsp; ${DATA.closedLost.count} lost<br>` +
+  (est ? `${est} deal${est===1?" has an":"s have"} estimated value${est===1?"":"s"} — say "Nike is $60k" to correct.<br>` : "") +
+  `Stages live in your Gmail <b>CRM/</b> labels. To change anything here, just tell Claude — "move Vuori to pitched", "add a note on Celsius".`;
+</script>
+</body>
+</html>

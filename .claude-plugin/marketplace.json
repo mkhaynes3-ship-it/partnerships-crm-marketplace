@@ -1,0 +1,15 @@
+{
+  "name": "makenna-plugins",
+  "description": "Plugins built by Makenna Haynes.",
+  "version": "1.0.0",
+  "owner": {
+    "name": "Makenna Haynes"
+  },
+  "plugins": [
+    {
+      "name": "partnerships-crm",
+      "source": "./plugins/partnerships-crm",
+      "description": "A CRM that lives in Gmail. Deal stages live in Gmail labels; it tracks brand outreach, drafts follow-ups before deals go cold, sends a daily digest, and renders a pipeline dashboard with forecast."
+    }
+  ]
+}
